@@ -1,0 +1,27 @@
+- hosts: serveursweb
+  user: azureuser
+  vars:
+    ansible_ssh_private_key_file: "~/.ssh/myVM.pem"
+  become: yes
+  tasks:
+  - name: Git checkout
+    git:
+      repo: https://gitlab.esiea.fr/raad/super-ai-croquette.git
+      dest: /home/azureuser/super-ai-croquette
+  - name: Install flask
+    apt:
+      name: python3-flask
+      update_cache: true
+  - name: Install gunicorn
+    apt:
+      name: gunicorn
+  - name: Create a symbolic link for gunicorn service
+    file:
+      src: /home/azureuser/super-ai-croquette/gunicorn.service
+      dest: /etc/systemd/system/gunicorn.service
+      state: link
+  - name: Start Gunicorn service
+    systemd:
+      name: gunicorn.service
+      state: started
+      enabled: true

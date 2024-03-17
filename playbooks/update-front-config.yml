@@ -1,0 +1,34 @@
+- hosts: serveursweb
+  user: azureuser
+  vars:
+    ansible_ssh_private_key_file: "~/.ssh/myVM.pem"
+  become: yes
+  tasks:
+  - name: Configure load balancer
+    copy:
+      content: "{{ lookup('file', '../output/loadbalancer.conf') }}"
+      dest: "/etc/nginx/conf.d/loadbalancer.conf"
+  - name: Configure ansible hosts
+    copy:
+      content: "{{ lookup('file', '../output/hosts') }}"
+      dest: "/etc/ansible/hosts"
+  - name: Copy ssh key to serveursweb
+    copy:
+      content: "{{ lookup('file', '~/.ssh/myVM.pem') }}"
+      dest: "~/.ssh/myVM.pem"
+      mode: 0600
+  - name: Disable ssh key authenticity check on target
+    copy:
+      content: "{{ lookup('file', '/etc/ansible/ansible.cfg') }}"
+      dest: "/etc/ansible/ansible.cfg"
+  - name: Copy back-config yaml file
+    copy:
+      content: "{{ lookup('file', './back-config.yml') }}"
+      dest: "~/back-config.yml"
+  - name: Run ansible playbook on target to deploy webapp to back VMs
+    command: ansible-playbook ~/back-config.yml
+  - name: Reload nginx service
+    systemd:
+      state: reloaded
+      daemon_reload: true
+      name: nginx
